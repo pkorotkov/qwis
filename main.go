@@ -144,7 +144,7 @@ func Whois(domainName string) (*WhoisResponse, error) {
 func printHelpMessage() {
 	fmt.Fprintln(os.Stdout, "Quick whois utility")
 	fmt.Fprintf(os.Stdout, "Version: %s\n", version)
-	fmt.Fprintln(os.Stdout, "Usage:   qws [-r|-j] <-h>|<domain-name>")
+	fmt.Fprintln(os.Stdout, "Usage:   qwis [-r|-j] <-h>|<domain-name>")
 	os.Exit(0)
 }
 
