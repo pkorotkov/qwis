@@ -22,7 +22,7 @@ var (
 )
 
 type WhoisResponse struct {
-    rawText        []byte
+	rawText        []byte
 	DomainName     string   `json:"domain_name"`
 	Registrar      string   `json:"registrar"`
 	Statuses       []string `json:"statuses"`
@@ -94,7 +94,7 @@ func isExperationDate(l []byte) bool {
 
 func buildResponse(rawWhoisResponse []byte) (*WhoisResponse, error) {
 	r := &WhoisResponse{}
-    r.rawText = rawWhoisResponse
+	r.rawText = rawWhoisResponse
 	rtlns := bytes.Split(rawWhoisResponse, lf)
 	for _, rtln := range rtlns {
 		sides := bytes.SplitN(rtln, colon, 2)
@@ -167,9 +167,9 @@ func main() {
 		printHelpMessage()
 	}
 	var (
-        dn      string
-        writeAs func(*WhoisResponse, io.Writer) error
-    )
+		dn      string
+		writeAs func(*WhoisResponse, io.Writer) error
+	)
 	switch a := args[0]; {
 	case a == "-h":
 		printHelpMessage()
