@@ -22,6 +22,7 @@ var (
 )
 
 type WhoisResponse struct {
+    rawText        []byte
 	DomainName     string   `json:"domain_name"`
 	Registrar      string   `json:"registrar"`
 	Statuses       []string `json:"statuses"`
@@ -36,7 +37,12 @@ func (wir *WhoisResponse) WriteAsJSON(w io.Writer) (err error) {
 	}
 	var out bytes.Buffer
 	json.Indent(&out, wirj, "", "    ")
-	out.WriteTo(w)
+	_, err = out.WriteTo(w)
+	return
+}
+
+func (wir *WhoisResponse) WriteAsRawText(w io.Writer) (err error) {
+	_, err = w.Write(wir.rawText)
 	return
 }
 
@@ -81,12 +87,14 @@ func isCreationDate(l []byte) bool {
 func isExperationDate(l []byte) bool {
 	return bytes.Equal(l, []byte("expiry")) ||
 		bytes.Contains(l, []byte("expiry date")) ||
+		bytes.Contains(l, []byte("expire date")) ||
 		bytes.Equal(l, []byte("paid-till")) ||
 		bytes.Contains(l, []byte("expiration"))
 }
 
 func buildResponse(rawWhoisResponse []byte) (*WhoisResponse, error) {
 	r := &WhoisResponse{}
+    r.rawText = rawWhoisResponse
 	rtlns := bytes.Split(rawWhoisResponse, lf)
 	for _, rtln := range rtlns {
 		sides := bytes.SplitN(rtln, colon, 2)
@@ -148,7 +156,7 @@ func printHelpMessage() {
 	os.Exit(0)
 }
 
-func printErrorMessage(m string, ec int) {
+func printErrorMessageAndExit(m string, ec int) {
 	fmt.Fprintf(os.Stderr, "Error: %s\n", m)
 	os.Exit(ec)
 }
@@ -158,27 +166,33 @@ func main() {
 	if len(args) == 0 {
 		printHelpMessage()
 	}
-	var dn string
-	switch args[0] {
-	case "-h":
+	var (
+        dn      string
+        writeAs func(*WhoisResponse, io.Writer) error
+    )
+	switch a := args[0]; {
+	case a == "-h":
 		printHelpMessage()
-	case "-r":
-		// TODO: Implement it.
-		os.Exit(-1)
-	case "-j":
+	case a == "-r" || a == "-j":
 		if len(args) == 2 {
 			dn = args[1]
+			if a == "-r" {
+				writeAs = (*WhoisResponse).WriteAsRawText
+			} else {
+				writeAs = (*WhoisResponse).WriteAsJSON
+			}
 		} else {
-			printErrorMessage("Invalid set of arguments", 1)
+			printErrorMessageAndExit("Invalid set of arguments", 1)
 		}
 	default:
 		dn = args[0]
+		writeAs = (*WhoisResponse).WriteAsJSON
 	}
 	wir, err := Whois(dn)
 	if err != nil {
-		printErrorMessage(err.Error(), 2)
+		printErrorMessageAndExit(err.Error(), 2)
 	}
-	if err = wir.WriteAsJSON(os.Stdout); err != nil {
-		printErrorMessage(err.Error(), 3)
+	if err = writeAs(wir, os.Stdout); err != nil {
+		printErrorMessageAndExit(err.Error(), 3)
 	}
 }
